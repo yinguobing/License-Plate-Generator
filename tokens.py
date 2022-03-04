@@ -1,4 +1,4 @@
-"""According to The License Plates of Motor Vehicles of the People's Republic 
+"""According to The License Plates of Motor Vehicles of the People's Republic
 of China, GA36-2018."""
 
 # BLANK means an absence of a token.

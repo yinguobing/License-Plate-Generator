@@ -1,39 +1,45 @@
 """Generate random license plate images."""
 import cv2
 
-import pixels
 import tokens
-from license_plate import LPImageGenerator, Pattern
+from license_plate import LPImageGenerator, TokenSet
 
 if __name__ == "__main__":
     # What the license would be like?
-    target = [
-        tokens.PROVINCES,
-        tokens.ALPHABETS,
-        [tokens.ALPHABETS, tokens.DIGITS],
-        [tokens.ALPHABETS, tokens.DIGITS],
-        [tokens.ALPHABETS, tokens.DIGITS],
-        [tokens.ALPHABETS, tokens.DIGITS],
-        [tokens.ALPHABETS, tokens.DIGITS]
+    mixed = tokens.ALPHABETS
+    mixed.extend(tokens.DIGITS)
+    targets = [
+        tokens.PROVINCES, tokens.ALPHABETS, mixed, mixed, mixed, mixed, mixed
     ]
-    pattern_blue = Pattern(target)
 
-    # The generator.
-    generator = LPImageGenerator(pattern_blue)
+    # What are the locations for each token character?
+    locations = [
+        (15, 25),
+        (72, 25),
+        (151, 25),
+        (208, 25),
+        (265, 25),
+        (322, 25),
+        (379, 25),
+    ]
+
+    assert len(targets) == len(
+        locations), f"字符长度{len(targets)}与位置长度{len(locations)}不一致。"
 
     # Where is the background imagefile?
-    background = cv2.imread('assets/background/blue/140.png')
+    background_file = 'assets/background/blue/140.png'
 
     # Where are the token image files?
     token_dir = 'assets/tokens/condensed-0'
 
-    # Generate a license.
-    license, license_str = generator.random_generate()
-    print(license_str)
+    # The generator.
+    token_sets = [TokenSet(chars, token_dir) for chars in targets]
+    generator = LPImageGenerator(token_sets, background_file, locations)
 
-    # Overlay the mask.
-    # result = pixels.overlay(background, mask, (0, 0), (255, 255, 255))
+    # Generate some license plates.
+    for _ in range(5):
+        result = generator.random_generate()
 
-    # Show the results.
-    # cv2.imshow('result', result.astype(np.uint8))
-    # cv2.waitKey(0)
+        # Show the results.
+        cv2.imshow('result', result)
+        cv2.waitKey(0)

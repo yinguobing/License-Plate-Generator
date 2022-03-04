@@ -1,53 +1,65 @@
 """License plate number generation."""
-import itertools
+import os
+from collections import namedtuple
 from random import choice
 
-from tokens import FULLSET
+import cv2
+
+import pixels
+import tokens
+
+Token = namedtuple('Token', 'char image')
 
 
-class Pattern:
-    """A pattern defines what a license place looks like."""
+class TokenSet:
+    """A collection of tokens."""
 
-    def __init__(self, token_sets) -> None:
-        """Create a license pattern object.
+    def __init__(self, token_chars: list, img_dir: str) -> None:
+        """Create a toke set from input characters."""
+        self.chars = token_chars
+        self.data = {}
+        for c in self.chars:
+            img_file = os.path.join(img_dir, f'{c}.jpg')
+            assert os.path.exists(
+                img_file), f"Token image file not found: {img_file}"
+            img = cv2.imread(img_file)
+            self.data.update({c: Token(c, img)})
 
-        Args:
-            token_sets: a list of token sets of the same size. Multiple token
-                sets could be grouped in a list as a single set.
-        """
-        self.token_sets = token_sets
+    def get_random_one(self):
+        """Return a random token from the current set."""
+        return self.data.get(choice(self.chars))
+
+    def get_image(self, char=None):
+        """Return the token image of a given character. Return None if not found."""
+        token = self.data.get(char)
+        if token is None:
+            return None
+        return token.image
 
 
 class LPImageGenerator:
     """License plate image generator."""
 
-    def __init__(self, pattern: Pattern) -> None:
+    def __init__(self,
+                 token_sets: list,
+                 background_file: str,
+                 locations: list) -> None:
         """Create a license plate image generator."""
         # What kind of license should be generated?
-        self._pattern = pattern
-        self._token_set_list = []
-        for token_set in self._pattern.token_sets:
-            if type(token_set) is list:
-                self._token_set_list.append(list(itertools.chain(*token_set)))
-            else:
-                self._token_set_list.append(token_set)
+        self._token_sets = token_sets
+        self._background = cv2.imread(background_file)
+        self._locations = locations
 
         # How to convert all the tokens into a unique ID?
-        self._token_dict = {t: i for i, t in enumerate(FULLSET)}
+        self._token_dict = {c: i for i, c in enumerate(tokens.FULLSET)}
 
     def random_generate(self):
-        """Generate a piece of random license with the current token.
+        """Generate a piece of random license with the current token."""
+        pseudo_plate = self._background.copy()
+        for token_set, location in zip(self._token_sets, self._locations):
+            token = token_set.get_random_one()
+            mask = pixels.img_to_mask(token.image, reverse=True)
+            pseudo_plate = pixels.overlay(
+                pseudo_plate, mask, location, (255, 255, 255))
 
-        Returns:
-            license: a list of token ids.
-            license_str: the license string.
-        """
-        license = []
-        license_str = ''
-        for _tokens in self._token_set_list:
-            char = choice(_tokens)
-            license_str += char
-            token_id = self._token_dict[char]
-            license.append(token_id)
-
-        return license, license_str
+        return pseudo_plate
