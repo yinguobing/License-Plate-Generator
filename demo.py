@@ -1,25 +1,39 @@
 """Generate random license plate images."""
 import cv2
-import numpy as np
 
 import pixels
-from license_plate import generate, TOKENS
+import tokens
+from license_plate import LPImageGenerator, Pattern
 
 if __name__ == "__main__":
-    # Where is the background imagefile?
-    backgroud = cv2.imread('assets/blue_140.png')
+    # What the license would be like?
+    target = [
+        tokens.PROVINCES,
+        tokens.ALPHABETS,
+        [tokens.ALPHABETS, tokens.DIGITS],
+        [tokens.ALPHABETS, tokens.DIGITS],
+        [tokens.ALPHABETS, tokens.DIGITS],
+        [tokens.ALPHABETS, tokens.DIGITS],
+        [tokens.ALPHABETS, tokens.DIGITS]
+    ]
+    pattern_blue = Pattern(target)
 
-    # Where is the mask image file?
-    mask_img = cv2.imread('assets/green_粤.jpg')
-    mask = pixels.img_to_mask(mask_img, threshold=128, reverse=True)*255
+    # The generator.
+    generator = LPImageGenerator(pattern_blue)
+
+    # Where is the background imagefile?
+    background = cv2.imread('assets/background/blue/140.png')
+
+    # Where are the token image files?
+    token_dir = 'assets/tokens/condensed-0'
 
     # Generate a license.
-    license = generate(size=7, tokens=TOKENS)
-    print(license)
+    license, license_str = generator.random_generate()
+    print(license_str)
 
     # Overlay the mask.
-    result = pixels.overlay(backgroud, mask, (0, 0), (255, 255, 255))
+    # result = pixels.overlay(background, mask, (0, 0), (255, 255, 255))
 
     # Show the results.
-    cv2.imshow('result', result.astype(np.uint8))
-    cv2.waitKey(0)
+    # cv2.imshow('result', result.astype(np.uint8))
+    # cv2.waitKey(0)
