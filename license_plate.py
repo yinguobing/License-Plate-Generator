@@ -40,15 +40,12 @@ class TokenSet:
 class LPImageGenerator:
     """License plate image generator."""
 
-    def __init__(self,
-                 token_sets: list,
-                 background_file: str,
-                 locations: list) -> None:
+    def __init__(self, pattern) -> None:
         """Create a license plate image generator."""
         # What kind of license should be generated?
-        self._token_sets = token_sets
-        self._background = cv2.imread(background_file)
-        self._locations = locations
+        self._token_sets = pattern.token_sets
+        self._background = cv2.imread(pattern.background_file)
+        self._locations = pattern.locations
 
         # How to convert all the tokens into a unique ID?
         self._token_dict = {c: i for i, c in enumerate(tokens.FULLSET)}
