@@ -46,6 +46,7 @@ class LPImageGenerator:
         self._token_sets = pattern.token_sets
         self._background = cv2.imread(pattern.background_file)
         self._locations = pattern.locations
+        self._colors = pattern.colors
 
         # How to convert all the tokens into a unique ID?
         self._token_dict = {c: i for i, c in enumerate(tokens.FULLSET)}
@@ -53,10 +54,9 @@ class LPImageGenerator:
     def random_generate(self):
         """Generate a piece of random license with the current token."""
         pseudo_plate = self._background.copy()
-        for token_set, location in zip(self._token_sets, self._locations):
+        for token_set, location, color in zip(self._token_sets, self._locations, self._colors):
             token = token_set.get_random_one()
             mask = pixels.img_to_mask(token.image, reverse=True)
-            pseudo_plate = pixels.overlay(
-                pseudo_plate, mask, location, (255, 255, 255))
+            pseudo_plate = pixels.overlay(pseudo_plate, mask, location, color)
 
         return pseudo_plate
