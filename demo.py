@@ -1,7 +1,7 @@
 """Generate random license plate images."""
 import cv2
 
-from license_plate import LPImageGenerator
+from core.license_plate import LPImageGenerator
 from patterns.china import BLUE
 
 if __name__ == "__main__":

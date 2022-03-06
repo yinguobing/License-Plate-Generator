@@ -1,13 +1,10 @@
 """According to The License Plates of Motor Vehicles of the People's Republic
 of China, GA36-2018."""
-from collections import namedtuple
 from itertools import chain
 
-import tokens
-from license_plate import TokenSet
-
-Pattern = namedtuple(
-    'Pattern', ['size', 'background_file', 'token_sets', 'locations', 'colors'])
+import patterns.china.tokens as tokens
+from core.pattern import Pattern
+from core.token import TokenSet
 
 # 蓝牌140
 
@@ -28,7 +25,7 @@ colors = [(255, 255, 255), (255, 255, 255), (255, 255, 255),
           (255, 255, 255), (255, 255, 255), (255, 255, 255), (0, 0, 255)]
 
 # 字符图像的存储位置
-token_dir = 'assets/tokens/condensed-0'
+token_img_dir = 'assets/tokens/condensed-0'
 
 # 背景图像的路径
 background_file = 'assets/background/blue/140.png'
@@ -38,8 +35,9 @@ assert len(locations) == size, f"位置长度{len(locations)}不等于{size}。"
 assert len(colors) == size, f"色彩长度{len(colors)}不等于{size}。"
 
 BLUE = Pattern(
-    size=7,
+    token_count=7,
+    token_sets=[TokenSet(chars, token_img_dir) for chars in targets],
+    full_token_chars=tokens.FULLSET,
     background_file=background_file,
-    token_sets=[TokenSet(chars, token_dir) for chars in targets],
-    locations=locations,
-    colors=colors)
+    token_locations=locations,
+    token_colors=colors)
