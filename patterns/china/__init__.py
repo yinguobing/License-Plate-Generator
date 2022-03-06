@@ -1,5 +1,6 @@
 from .blue import BLUE
 from .driving_school import DRIVING_SCHOOL
+from .embassy import EMBASSY
 from .green_bus import GREEN_B
 from .green_car import GREEN_A
 from .hongkong import HONGKONG
