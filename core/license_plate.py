@@ -11,7 +11,8 @@ class LPImageGenerator:
         """Create a license plate image generator."""
         # What kind of license should be generated?
         self._token_sets = pattern.token_sets
-        self._background = cv2.imread(pattern.background_file)
+        self._background = cv2.imread(
+            pattern.background_file, cv2.IMREAD_UNCHANGED)
         self._locations = pattern.token_locations
         self._colors = pattern.token_colors
         self._full_token_chars = pattern.full_token_chars

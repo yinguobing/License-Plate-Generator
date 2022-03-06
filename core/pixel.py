@@ -44,8 +44,10 @@ def overlay(image: np.ndarray, mask: np.ndarray, location=(0, 0), color=(0, 0, 0
     channel_blue = ma.masked_array(image[:, :, 0], mask=_mask).filled(b)
     channel_green = ma.masked_array(image[:, :, 1], mask=_mask).filled(g)
     channel_red = ma.masked_array(image[:, :, 1], mask=_mask).filled(r)
+    channel_alpha = image[:, :, 3]
 
     # Construct a return image.
-    result = np.stack([channel_blue, channel_green, channel_red], axis=-1)
+    result = np.stack([channel_blue, channel_green,
+                      channel_red, channel_alpha], axis=-1)
 
     return result
