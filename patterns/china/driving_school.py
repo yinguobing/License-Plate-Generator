@@ -12,7 +12,7 @@ from core.token import TokenSet
 size = 7
 
 # 每一位字符可以使用的的字符组
-mixed = list(chain(tokens.ALPHABETS, tokens.DIGITS))
+mixed = list(chain(tokens.REDUCED_ALPHABETS, tokens.DIGITS))
 targets = [tokens.PROVINCES, tokens.ALPHABETS,
            mixed, mixed, mixed, mixed, ['学']]
 

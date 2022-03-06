@@ -12,7 +12,7 @@ from core.token import TokenSet
 size = 7
 
 # 每一位字符可以使用的的字符组
-mixed = list(chain(tokens.ALPHABETS, tokens.DIGITS))
+mixed = list(chain(tokens.REDUCED_ALPHABETS, tokens.DIGITS))
 targets = ['粤', 'Z', mixed, mixed, mixed, mixed, '港']
 
 # 每一位字符的位置：左上角的像素坐标
