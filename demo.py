@@ -3,11 +3,11 @@ import cv2
 
 from core.license_plate import LPImageGenerator
 from patterns.china import (BLUE, DRIVING_SCHOOL, GREEN_A, GREEN_B, HONGKONG,
-                            WHITE, YELLOW)
+                            MACAO, WHITE, YELLOW)
 
 if __name__ == "__main__":
     # What the license would be like?
-    generator = LPImageGenerator(HONGKONG)
+    generator = LPImageGenerator(MACAO)
 
     # Generate some license plates.
     for _ in range(100):
