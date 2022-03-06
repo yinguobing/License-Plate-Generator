@@ -2,7 +2,7 @@
 import cv2
 
 from core.license_plate import LPImageGenerator
-from patterns.china import BLUE
+from patterns.china import BLUE, YELLOW
 
 if __name__ == "__main__":
     # What the license would be like?
@@ -14,4 +14,5 @@ if __name__ == "__main__":
 
         # Show the results.
         cv2.imshow('result', result)
-        cv2.waitKey(100)
+        if cv2.waitKey(100) == 27:
+            break
