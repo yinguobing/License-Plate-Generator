@@ -1,5 +1,6 @@
 """According to The License Plates of Motor Vehicles of the People's Republic
 of China, GA36-2018."""
+from itertools import chain
 
 # BLANK means an absence of a token.
 BLANK = ['-']
@@ -21,9 +22,10 @@ APPENDIX = ['挂', '警', '学', '使', '领', '港', '澳']
 
 # A collection of all license characters. Note the first one MUST be the BLANK
 # token.
-FULLSET = []
-FULLSET.extend(BLANK)
-FULLSET.extend(PROVINCES)
-FULLSET.extend(ALPHABETS)
-FULLSET.extend(DIGITS)
-FULLSET.extend(APPENDIX)
+FULLSET = chain(
+    BLANK,
+    PROVINCES,
+    ALPHABETS,
+    DIGITS,
+    APPENDIX,
+)
