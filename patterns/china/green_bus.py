@@ -14,7 +14,7 @@ size = 8
 # 每一位字符可以使用的的字符组
 mixed = list(chain(tokens.REDUCED_ALPHABETS, tokens.DIGITS))
 targets = [tokens.PROVINCES, tokens.REDUCED_ALPHABETS,
-           mixed, mixed, mixed, mixed, mixed, mixed]
+           mixed, mixed, tokens.DIGITS, tokens.DIGITS, tokens.DIGITS, mixed]
 
 # 每一位字符的位置：左上角的像素坐标
 locations = [(15, 25), (69, 25), (161, 25), (213, 25),
