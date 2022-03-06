@@ -1,4 +1,5 @@
 from .blue import BLUE
+from .consulate import CONSULATE
 from .driving_school import DRIVING_SCHOOL
 from .embassy import EMBASSY
 from .green_bus import GREEN_B
