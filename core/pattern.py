@@ -2,6 +2,9 @@ from collections import namedtuple
 
 Pattern = namedtuple(
     'Pattern', [
+        # What is the name of this pattern?
+        'name',
+
         # How many tokens does one license have?
         'token_count',
 

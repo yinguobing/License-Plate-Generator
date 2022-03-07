@@ -34,7 +34,8 @@ assert len(locations) == size, f"位置长度{len(locations)}不等于{size}。"
 assert len(colors) == size, f"色彩长度{len(colors)}不等于{size}。"
 
 HONGKONG = Pattern(
-    token_count=7,
+    name='hongkong',
+    token_count=size,
     token_sets=[TokenSet(chars, token_img_dir) for chars in targets],
     full_token_chars=tokens.FULLSET,
     background_file=background_file,
