@@ -11,9 +11,10 @@ if __name__ == "__main__":
 
     # Generate some license plates.
     for _ in range(100):
-        result = generator.random_generate()
+        image, tokens = generator.random_generate()
 
         # Show the results.
-        cv2.imshow('result', result)
+        print(tokens)
+        cv2.imshow('result', image)
         if cv2.waitKey(100) == 27:
             break
