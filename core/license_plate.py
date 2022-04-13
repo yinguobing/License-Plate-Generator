@@ -20,14 +20,24 @@ class LPImageGenerator:
         # How to convert all the tokens into a unique ID?
         self._token_dict = {c: i for i, c in enumerate(self._full_token_chars)}
 
-    def random_generate(self):
-        """Generate a piece of random license with the current token."""
+    def _to_image(self, token_list):
+        """Convet the input chars into image.
+
+        Args:
+            token_list: a list or tokens.
+        """
         pseudo_plate = self._background.copy()
         token_str = ''
-        for token_set, location, color in zip(self._token_sets.get_random_one(), self._locations, self._colors):
-            token = token_set.get_random_one()
+        for token, location, color in zip(token_list, self._locations, self._colors):
             mask = pixel.img_to_mask(token.image, reverse=True)
             pseudo_plate = pixel.overlay(pseudo_plate, mask, location, color)
             token_str += token.char
 
+        return pseudo_plate, token_str
+
+    def random_generate(self):
+        """Generate a piece of random license with the current token."""
+        token_sets = [t.get_random_one()
+                      for t in self._token_sets.get_random_one()]
+        pseudo_plate, token_str = self._to_image(token_sets)
         return pseudo_plate, token_str
