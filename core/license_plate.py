@@ -24,7 +24,7 @@ class LPImageGenerator:
         """Generate a piece of random license with the current token."""
         pseudo_plate = self._background.copy()
         token_str = ''
-        for token_set, location, color in zip(self._token_sets, self._locations, self._colors):
+        for token_set, location, color in zip(self._token_sets.get_random_one(), self._locations, self._colors):
             token = token_set.get_random_one()
             mask = pixel.img_to_mask(token.image, reverse=True)
             pseudo_plate = pixel.overlay(pseudo_plate, mask, location, color)

@@ -1,5 +1,6 @@
 """According to The License Plates of Motor Vehicles of the People's Republic
 of China, GA36-2018."""
+import random
 from itertools import chain
 
 import patterns.china.tokens as tokens
@@ -34,10 +35,33 @@ assert len(targets) == size, f"Token长度{len(targets)}不等于{size}。"
 assert len(locations) == size, f"位置长度{len(locations)}不等于{size}。"
 assert len(colors) == size, f"色彩长度{len(colors)}不等于{size}。"
 
+
+class BlueTokenSets:
+
+    def __init__(self) -> None:
+        self.token_sets = [TokenSet(tokens.PROVINCES, token_img_dir),
+                           TokenSet(tokens.ALPHABETS, token_img_dir)]
+
+        # There should be no more than 2 letters in a valid license.
+        self.series = [tokens.REDUCED_ALPHABETS,
+                       tokens.REDUCED_ALPHABETS,
+                       tokens.DIGITS,
+                       tokens.DIGITS,
+                       tokens.DIGITS]
+
+    def get_random_one(self):
+        series = self.series.copy()
+        random.shuffle(series)
+        token_sets = self.token_sets.copy()
+        token_sets.extend([TokenSet(chars, token_img_dir) for chars in series])
+
+        return token_sets
+
+
 BLUE = Pattern(
     name='blue',
     token_count=size,
-    token_sets=[TokenSet(chars, token_img_dir) for chars in targets],
+    token_sets=BlueTokenSets(),
     full_token_chars=tokens.FULLSET,
     background_file=background_file,
     token_locations=locations,

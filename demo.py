@@ -1,4 +1,6 @@
 """Generate random license plate images."""
+from random import randint, random
+
 import cv2
 
 from core.grind import Grinder
@@ -20,10 +22,11 @@ if __name__ == "__main__":
         image, tokens = generator.random_generate()
 
         # Grind it!
-        modifiled = grinder.exposure(image, 0.5, 30)
+        modifiled = image.copy()
+        modifiled = grinder.exposure(image, 0.3 + random(), 50*random())
         modifiled = grinder.sharpen(modifiled)
-        modifiled = grinder.blur(modifiled, 20)
-        modifiled = grinder.make_noise(modifiled)
+        modifiled = grinder.blur(modifiled, randint(1, 6)*2 + 1)
+        modifiled = grinder.make_noise(modifiled, 0, 0.01)
 
         # Show the results.
         print(tokens)
