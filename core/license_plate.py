@@ -40,9 +40,9 @@ class LPImageGenerator:
 
     def random_generate(self):
         """Generate a piece of random license with the current token."""
-        token_sets = [t.get_random_one()
-                      for t in self._token_sets.get_random_one()]
-        return self._to_image(token_sets)
+        tokens = [t.get_random_one()
+                  for t in self._token_sets.get_random_one()]
+        return self._to_image(tokens)
 
     def generate(self, chars):
         """Generate a license plate with given chars.
@@ -51,4 +51,16 @@ class LPImageGenerator:
             chars: a list of characters or a string as license number.
         """
         tokens = [self._valid_tokens.get(c) for c in chars]
+        return self._to_image(tokens)
+
+    def generate_with_char_sets(self, char_set_list, token_img_dir):
+        """Generate a license plate with given char set list.
+
+        Args:
+            char_set_list: a list of chars sets
+            token_img_dir: the token image directory
+        """
+        token_set_list = [TokenSet(chars, token_img_dir)
+                          for chars in char_set_list]
+        tokens = [t.get_random_one() for t in token_set_list]
         return self._to_image(tokens)
