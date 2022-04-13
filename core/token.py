@@ -21,6 +21,10 @@ class TokenSet:
             img = cv2.imread(img_file)
             self.data.update({c: Token(c, img)})
 
+    def get(self, char):
+        """Return a token of char."""
+        return self.data.get(char)
+
     def get_random_one(self):
         """Return a random token from the current set."""
         return self.data.get(choice(self.chars))
