@@ -15,8 +15,21 @@ if __name__ == "__main__":
     # How to make the license looks real?
     grinder = Grinder()
 
-    # Generate a specific license plate.
+    # Generate a license plate from specific number.
     image, tokens = generator.generate('晋H99999')
+    cv2.imshow('result', image)
+    cv2.waitKey()
+
+    # Generate a license plate from manually selected characters.
+    image, tokens = generator.generate_with_char_sets(
+        [['粤', '京'],
+         ['A', 'Z'],
+         ['B', 'C'],
+         ['1', '3'],
+         ['2', '4'],
+         ['X', 'H'],
+         ['0', '8']], 'assets/tokens/condensed-0'
+    )
     cv2.imshow('result', image)
     cv2.waitKey()
 
