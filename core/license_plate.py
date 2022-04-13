@@ -11,6 +11,7 @@ class LPImageGenerator:
     def __init__(self, pattern) -> None:
         """Create a license plate image generator."""
         # What kind of license should be generated?
+        self._digits_count = pattern.token_count
         self._token_sets = pattern.token_sets
         self._background = cv2.imread(
             pattern.background_file, cv2.IMREAD_UNCHANGED)
@@ -50,6 +51,8 @@ class LPImageGenerator:
         Args:
             chars: a list of characters or a string as license number.
         """
+        assert self._digits_count == len(
+            chars), f"Only support {self._digits_count} digits, but {len(chars)} given."
         tokens = [self._valid_tokens.get(c) for c in chars]
         return self._to_image(tokens)
 
@@ -60,6 +63,8 @@ class LPImageGenerator:
             char_set_list: a list of chars sets
             token_img_dir: the token image directory
         """
+        assert self._digits_count == len(
+            char_set_list), f"Only support {self._digits_count} digits, but {len(char_set_list)} given."
         token_set_list = [TokenSet(chars, token_img_dir)
                           for chars in char_set_list]
         tokens = [t.get_random_one() for t in token_set_list]
