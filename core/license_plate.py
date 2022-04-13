@@ -2,6 +2,7 @@
 import cv2
 
 import core.pixel as pixel
+from core.token import TokenSet
 
 
 class LPImageGenerator:
@@ -16,6 +17,8 @@ class LPImageGenerator:
         self._locations = pattern.token_locations
         self._colors = pattern.token_colors
         self._full_token_chars = pattern.full_token_chars
+        self._valid_tokens = TokenSet(
+            pattern.valid_token_set, pattern.token_img_dir)
 
         # How to convert all the tokens into a unique ID?
         self._token_dict = {c: i for i, c in enumerate(self._full_token_chars)}
@@ -39,5 +42,13 @@ class LPImageGenerator:
         """Generate a piece of random license with the current token."""
         token_sets = [t.get_random_one()
                       for t in self._token_sets.get_random_one()]
-        pseudo_plate, token_str = self._to_image(token_sets)
-        return pseudo_plate, token_str
+        return self._to_image(token_sets)
+
+    def generate(self, chars):
+        """Generate a license plate with given chars.
+
+        Args:
+            chars: a list of characters or a string as license number.
+        """
+        tokens = [self._valid_tokens.get(c) for c in chars]
+        return self._to_image(tokens)
