@@ -41,4 +41,7 @@ CONSULATE = Pattern(
     full_token_chars=tokens.FULLSET,
     background_file=background_file,
     token_locations=locations,
-    token_colors=colors)
+    token_colors=colors,
+    token_img_dir=token_img_dir,
+    valid_token_set=list(chain(tokens.ALPHABETS, tokens.DIGITS, ['领']))
+)

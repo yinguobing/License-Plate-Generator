@@ -22,5 +22,11 @@ Pattern = namedtuple(
 
         # The background image file.
         'background_file',
+
+        # The directory for current token images.
+        'token_img_dir',
+
+        # The valid token set.
+        'valid_token_set',
     ]
 )

@@ -26,10 +26,10 @@ APPENDIX = ['挂', '警', '学', '使', '领', '港', '澳']
 
 # A collection of all license characters. Note the first one MUST be the BLANK
 # token.
-FULLSET = chain(
+FULLSET = list(chain(
     BLANK,
     PROVINCES,
     ALPHABETS,
     DIGITS,
     APPENDIX,
-)
+))
