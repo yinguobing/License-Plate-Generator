@@ -43,7 +43,7 @@ def overlay(image: np.ndarray, mask: np.ndarray, location=(0, 0), color=(0, 0, 0
     b, g, r = color
     channel_blue = ma.masked_array(image[:, :, 0], mask=_mask).filled(b)
     channel_green = ma.masked_array(image[:, :, 1], mask=_mask).filled(g)
-    channel_red = ma.masked_array(image[:, :, 1], mask=_mask).filled(r)
+    channel_red = ma.masked_array(image[:, :, 2], mask=_mask).filled(r)
 
     # Construct a return image.
 
