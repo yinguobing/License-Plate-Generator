@@ -5,7 +5,7 @@ Generate random pseudo license plate images for LPR dataset enhancement.
 
 <img src="https://user-images.githubusercontent.com/10267910/156922918-2699f8b3-236b-48b5-b3c6-097eab463140.png" width=240> <img src="https://user-images.githubusercontent.com/10267910/156923003-9f89dc0b-a47a-44ed-a9eb-f7aebfce6a91.png" width=240>
 
-- 以GB36-2018标准为参考依据。
+- 以[GA 36-2018](https://std.samr.gov.cn/hb/search/stdHBDetailed?id=8B1827F150C5BB19E05397BE0A0AB44A)标准为参考依据。
 - 内置10款常见车牌规则。
 - 可通过自定义Pattern支持其它车牌格式。
 
