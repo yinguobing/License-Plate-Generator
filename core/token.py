@@ -3,6 +3,7 @@ from collections import namedtuple
 from random import choice
 
 import cv2
+import numpy as np
 
 Token = namedtuple('Token', 'char image')
 
@@ -18,7 +19,7 @@ class TokenSet:
             img_file = os.path.join(img_dir, f'{c}.jpg')
             assert os.path.exists(
                 img_file), f"Token image file not found: {img_file}"
-            img = cv2.imread(img_file)
+            img = cv2.imdecode(np.fromfile(img_file, dtype=np.uint8), cv2.IMREAD_UNCHANGED)
             self.data.update({c: Token(c, img)})
 
     def get_random_one(self):
