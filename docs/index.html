@@ -1,0 +1,1258 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>车牌生成器 — 合成车牌识别数据集增强工具</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Noto+Sans+SC:wght@300;400;500;700;900&family=Noto+Serif+SC:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+<style>
+/* ── Reset & Variables ─────────────────────────────────────────── */
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0 }
+
+:root {
+  --bg:        #0d0d0d;
+  --bg-elevated:#141414;
+  --bg-surface: #1a1a1b;
+  --plate-blue: #003d8f;
+  --plate-blue-bright: #0055c4;
+  --plate-yellow:#e8b830;
+  --plate-green: #2d8a4e;
+  --plate-white: #f0f0f0;
+  --text-primary: #e6e6e6;
+  --text-secondary: #999;
+  --text-muted: #666;
+  --border:     #2a2a2a;
+  --border-active: #444;
+  --accent:     #ff4d2e;
+  --font-sans:  'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  --font-serif: 'Noto Serif SC', 'SimSun', serif;
+  --font-mono:  'DM Mono', 'Noto Sans SC', monospace;
+  --grain-opacity: 0.03;
+  --radius-sm: 2px;
+  --radius:    4px;
+}
+
+html {
+  scroll-behavior: smooth;
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  font-weight: 400;
+  line-height: 1.75;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Noise Overlay ─────────────────────────────────────────────── */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: var(--grain-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-size: 200px 200px;
+}
+
+/* ── Typography ─────────────────────────────────────────────────── */
+h1,h2,h3,h4 { font-family: var(--font-sans); font-weight: 900; letter-spacing: 0.05em }
+h1 { font-size: clamp(2.5rem, 7vw, 5.5rem); line-height: 1.15; letter-spacing: 0.08em }
+h2 { font-size: clamp(1.8rem, 4vw, 3rem); line-height: 1.25; letter-spacing: 0.06em }
+h3 { font-size: 1.15rem; letter-spacing: 0.1em; font-weight: 700 }
+h4 { font-size: 1.05rem; letter-spacing: 0.06em; font-weight: 700 }
+p  { font-family: var(--font-sans); font-weight: 300; color: var(--text-secondary); font-size: 0.95rem; line-height: 1.85 }
+a  { color: var(--plate-blue-bright); text-decoration: none; transition: color .2s }
+a:hover { color: var(--plate-white) }
+
+/* ── Layout ─────────────────────────────────────────────────────── */
+.container { width: min(1200px, 90vw); margin: 0 auto }
+.section { padding: clamp(4rem, 10vw, 8rem) 0 }
+
+/* ── Navigation ─────────────────────────────────────────────────── */
+.nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  padding: 1rem 0;
+  background: linear-gradient(180deg, rgba(13,13,13,0.98) 60%, rgba(13,13,13,0) 100%);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+.nav .container { display: flex; align-items: center; justify-content: space-between }
+.nav-logo {
+  font-family: var(--font-sans);
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.nav-logo .dot {
+  width: 8px; height: 8px;
+  background: var(--plate-blue-bright);
+  border-radius: 1px;
+}
+.nav-links { display: flex; gap: 1.75rem; list-style: none }
+.nav-links a {
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+  transition: color 0.2s;
+}
+.nav-links a:hover { color: var(--text-primary) }
+.nav-github {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  padding: 0.35rem 0.9rem;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s;
+  letter-spacing: 0.04em;
+}
+.nav-github:hover { border-color: var(--plate-blue-bright); color: var(--plate-white) }
+
+/* ── Hero ───────────────────────────────────────────────────────── */
+.hero {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  padding-top: 6rem;
+  position: relative;
+  overflow: hidden;
+}
+.hero::before {
+  content: '';
+  position: absolute;
+  top: 20%; right: -20%;
+  width: 700px; height: 700px;
+  background: radial-gradient(circle, rgba(0,61,143,0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+.hero::after {
+  content: '';
+  position: absolute;
+  bottom: 10%; left: -10%;
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(232,184,48,0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+.hero-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: clamp(2rem, 5vw, 5rem);
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+.hero-content { position: relative }
+.hero-eyebrow {
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  color: var(--plate-blue-bright);
+  margin-bottom: 2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.hero-eyebrow::before {
+  content: '';
+  width: 2.5rem; height: 1px;
+  background: var(--plate-blue-bright);
+}
+.hero h1 {
+  margin-bottom: 2rem;
+}
+.hero h1 .highlight {
+  color: var(--plate-blue-bright);
+  position: relative;
+}
+.hero h1 .highlight::after {
+  content: '';
+  position: absolute;
+  bottom: 0.05em; left: 0; right: 0;
+  height: 2px;
+  background: var(--plate-blue-bright);
+  opacity: 0.3;
+}
+.hero-description {
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  color: var(--text-secondary);
+  max-width: 480px;
+  margin-bottom: 2.5rem;
+  font-weight: 400;
+  line-height: 1.9;
+}
+.hero-actions { display: flex; gap: 0.75rem; align-items: center }
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.65rem 1.5rem;
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.25s;
+  border: none;
+  text-decoration: none;
+}
+.btn-primary {
+  background: var(--plate-blue-bright);
+  color: #fff;
+}
+.btn-primary:hover { background: #006add; color: #fff }
+.btn-outline {
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+.btn-outline:hover { border-color: var(--plate-blue-bright); background: rgba(0,61,143,0.1) }
+
+/* ── Hero Plate Visual ──────────────────────────────────────────── */
+.hero-plate-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+.hero-plate {
+  width: 380px;
+  height: 112px;
+  background: var(--plate-blue);
+  border-radius: 8px;
+  position: relative;
+  box-shadow:
+    0 0 0 2px #002a63,
+    0 0 0 6px #1a1a1b,
+    0 0 0 7px #333,
+    0 20px 60px rgba(0,0,0,0.5),
+    inset 0 1px 0 rgba(255,255,255,0.05);
+  overflow: hidden;
+}
+.hero-plate::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg,
+    rgba(255,255,255,0.03) 0%,
+    transparent 40%,
+    rgba(0,0,0,0.1) 100%);
+  pointer-events: none;
+  z-index: 2;
+}
+/* Bolt holes */
+.plate-bolt {
+  position: absolute;
+  width: 10px; height: 10px;
+  background: radial-gradient(circle at 40% 40%, #555, #1a1a1a);
+  border-radius: 50%;
+  z-index: 3;
+}
+.plate-bolt:nth-child(1) { top: 12px; left: 16px }
+.plate-bolt:nth-child(2) { top: 12px; right: 16px }
+.plate-bolt:nth-child(3) { bottom: 12px; left: 16px }
+.plate-bolt:nth-child(4) { bottom: 12px; right: 16px }
+
+/* Plate characters */
+.plate-chars {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  z-index: 1;
+}
+.plate-char {
+  font-family: var(--font-sans);
+  font-weight: 900;
+  font-size: 3rem;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  width: 44px;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(8px);
+  animation: charAppear 0.4s ease-out forwards;
+}
+.plate-char:nth-child(1) { animation-delay: 0.1s }
+.plate-char:nth-child(2) { animation-delay: 0.25s }
+.plate-char:nth-child(3) { animation-delay: 0.4s }
+.plate-char:nth-child(4) { animation-delay: 0.55s }
+.plate-char:nth-child(5) { animation-delay: 0.7s }
+.plate-char:nth-child(6) { animation-delay: 0.85s }
+.plate-char:nth-child(7) { animation-delay: 1.0s }
+
+@keyframes charAppear {
+  0%   { opacity: 0; transform: translateY(16px) scale(0.85) }
+  50%  { opacity: 1; transform: translateY(-3px) scale(1.03) }
+  100% { opacity: 1; transform: translateY(0) scale(1) }
+}
+
+/* Plate glow */
+.plate-glow {
+  position: absolute;
+  inset: -20px;
+  background: radial-gradient(ellipse at center, rgba(0,61,143,0.4) 0%, transparent 70%);
+  pointer-events: none;
+  animation: glowPulse 3s ease-in-out infinite;
+}
+@keyframes glowPulse {
+  0%, 100% { opacity: 0.4 }
+  50% { opacity: 0.7 }
+}
+
+/* Floating mini plates */
+.floating-plate {
+  position: absolute;
+  border-radius: 3px;
+  opacity: 0.15;
+  animation: floatPlate 20s linear infinite;
+  pointer-events: none;
+}
+.floating-plate:nth-child(1) {
+  width: 140px; height: 42px;
+  background: var(--plate-yellow);
+  top: -60px; right: -20px;
+  animation-delay: 0s;
+  animation-duration: 18s;
+}
+.floating-plate:nth-child(2) {
+  width: 120px; height: 36px;
+  background: var(--plate-green);
+  bottom: -40px; left: -30px;
+  animation-delay: -8s;
+  animation-duration: 22s;
+}
+.floating-plate:nth-child(3) {
+  width: 100px; height: 30px;
+  background: var(--plate-white);
+  top: 40px; right: -60px;
+  animation-delay: -14s;
+  animation-duration: 16s;
+}
+@keyframes floatPlate {
+  0%   { transform: translate(0, 0) rotate(0deg) }
+  25%  { transform: translate(20px, -30px) rotate(2deg) }
+  50%  { transform: translate(-10px, -15px) rotate(-1deg) }
+  75%  { transform: translate(-20px, 10px) rotate(-2deg) }
+  100% { transform: translate(0, 0) rotate(0deg) }
+}
+
+/* ── Stats Bar ──────────────────────────────────────────────────── */
+.stats-bar {
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-elevated);
+}
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  text-align: center;
+}
+.stat-item {
+  padding: 2.5rem 1rem;
+  border-right: 1px solid var(--border);
+  position: relative;
+}
+.stat-item:last-child { border-right: none }
+.stat-number {
+  font-family: var(--font-mono);
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--plate-white);
+  line-height: 1;
+  margin-bottom: 0.75rem;
+  letter-spacing: -0.02em;
+}
+.stat-label {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+
+/* ── Section Headers ────────────────────────────────────────────── */
+.section-tag {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--plate-blue-bright);
+  margin-bottom: 1.25rem;
+}
+.section-title {
+  margin-bottom: 1.25rem;
+}
+.section-subtitle {
+  font-family: var(--font-serif);
+  font-size: 1rem;
+  color: var(--text-secondary);
+  max-width: 600px;
+  font-weight: 400;
+  line-height: 1.85;
+}
+
+/* ── Plate Types Grid ───────────────────────────────────────────── */
+.plate-types-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1.25rem;
+  margin-top: 3rem;
+}
+.plate-type-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.75rem 1.25rem;
+  text-align: center;
+  transition: all 0.3s;
+  cursor: default;
+  position: relative;
+  overflow: hidden;
+}
+.plate-type-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: var(--plate-color, var(--plate-blue-bright));
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.plate-type-card:hover::before { opacity: 1 }
+.plate-type-card:hover {
+  border-color: var(--border-active);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+}
+.plate-mini {
+  width: 100%;
+  height: 36px;
+  border-radius: 3px;
+  margin-bottom: 1rem;
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 2px 8px rgba(0,0,0,0.3);
+}
+.plate-mini::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,0.06) 0%, transparent 50%, rgba(0,0,0,0.08) 100%);
+  pointer-events: none;
+}
+.plate-mini-dots {
+  display: flex;
+  gap: 2px;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+}
+.plate-mini-dot {
+  width: 5px; height: 10px;
+  background: rgba(255,255,255,0.7);
+  border-radius: 1px;
+}
+.plate-type-name {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 0.08em;
+  margin-bottom: 0.3rem;
+}
+.plate-type-desc {
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+}
+
+/* ── Pipeline Section ───────────────────────────────────────────── */
+.pipeline {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+  margin-top: 3rem;
+  position: relative;
+}
+.pipeline::before {
+  content: '';
+  position: absolute;
+  top: 2.5rem; left: 12.5%; right: 12.5%;
+  height: 1px;
+  background: repeating-linear-gradient(90deg, var(--border) 0, var(--border) 6px, transparent 6px, transparent 12px);
+  z-index: 0;
+}
+.pipeline-step {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 2rem 1.5rem;
+  position: relative;
+  z-index: 1;
+  transition: border-color 0.3s;
+}
+.pipeline-step:hover { border-color: var(--border-active) }
+.pipeline-step-num {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--plate-blue-bright);
+  letter-spacing: 0.08em;
+  margin-bottom: 0.75rem;
+  font-weight: 500;
+}
+.pipeline-step h4 {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.5rem;
+}
+.pipeline-step p {
+  font-family: var(--font-sans);
+  font-weight: 300;
+  font-size: 0.82rem;
+  line-height: 1.75;
+  color: var(--text-muted);
+}
+
+/* ── Code Block ─────────────────────────────────────────────────── */
+.code-section {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-top: 3rem;
+  overflow: hidden;
+}
+.code-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+}
+.code-dot { width: 10px; height: 10px; border-radius: 50% }
+.code-dot:nth-child(1) { background: #ff5f56 }
+.code-dot:nth-child(2) { background: #ffbd2e }
+.code-dot:nth-child(3) { background: #27c93f }
+.code-filename {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-left: 0.5rem;
+}
+.code-block {
+  padding: 1.5rem;
+  overflow-x: auto;
+}
+.code-block pre {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  line-height: 1.8;
+  color: var(--text-primary);
+}
+.code-block .kw { color: #ff6b6b }
+.code-block .str { color: #a8d8a8 }
+.code-block .cmt { color: var(--text-muted); font-style: italic }
+.code-block .fn { color: #ffd93d }
+.code-block .num { color: #a78bfa }
+
+/* ── Features Grid ──────────────────────────────────────────────── */
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+  margin-top: 3rem;
+}
+.feature-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 2rem 1.75rem;
+  transition: border-color 0.3s;
+}
+.feature-card:hover { border-color: var(--border-active) }
+.feature-card h4 {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.6rem;
+}
+.feature-card p {
+  font-family: var(--font-sans);
+  font-weight: 300;
+  font-size: 0.83rem;
+  line-height: 1.8;
+  color: var(--text-muted);
+}
+
+/* ── Augmentation Showcase ──────────────────────────────────────── */
+.augment-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-top: 3rem;
+}
+.augment-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.75rem 1.25rem;
+  text-align: center;
+  transition: all 0.3s;
+}
+.augment-card:hover {
+  border-color: var(--plate-blue-bright);
+  box-shadow: 0 0 30px rgba(0,61,143,0.1);
+}
+.augment-label {
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  color: var(--plate-blue-bright);
+  margin-bottom: 0.5rem;
+}
+.augment-card h4 {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 0.95rem;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.25rem;
+}
+
+/* ── CTA ────────────────────────────────────────────────────────── */
+.cta-section {
+  text-align: center;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-elevated);
+}
+.cta-section h2 { margin-bottom: 1.25rem; line-height: 1.4 }
+.cta-section .section-subtitle { margin: 0 auto 2rem }
+.cta-actions { display: flex; gap: 0.75rem; justify-content: center }
+
+/* ── Footer ─────────────────────────────────────────────────────── */
+.footer {
+  padding: 4rem 0;
+  text-align: center;
+}
+.footer-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 2rem;
+}
+.footer-brand {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  letter-spacing: 0.08em;
+}
+.footer-links {
+  display: flex;
+  gap: 2rem;
+}
+.footer-links a {
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  letter-spacing: 0.06em;
+  transition: color 0.2s;
+}
+.footer-links a:hover { color: var(--text-primary) }
+.footer-bottom {
+  font-family: var(--font-sans);
+  font-weight: 300;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  line-height: 1.8;
+}
+
+/* ── Scroll Indicator ───────────────────────────────────────────── */
+.scroll-indicator {
+  position: absolute;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  opacity: 0.5;
+  animation: scrollPulse 2s ease-in-out infinite;
+}
+.scroll-indicator span {
+  font-family: var(--font-sans);
+  font-size: 0.6rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+}
+.scroll-line {
+  width: 1px; height: 2rem;
+  background: linear-gradient(180deg, var(--text-muted), transparent);
+}
+@keyframes scrollPulse {
+  0%, 100% { opacity: 0.3 }
+  50% { opacity: 0.7 }
+}
+
+/* ── Responsive ─────────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .hero-grid { grid-template-columns: 1fr; text-align: center }
+  .hero-description { max-width: 100% }
+  .hero-actions { justify-content: center }
+  .hero-eyebrow { justify-content: center }
+  .hero-eyebrow::before { display: none }
+  .hero-plate-wrapper { order: -1 }
+  .hero-plate { width: 280px; height: 84px }
+  .plate-char { font-size: 2.2rem; width: 32px }
+  .plate-types-grid { grid-template-columns: repeat(3, 1fr) }
+  .features-grid { grid-template-columns: repeat(2, 1fr) }
+  .pipeline { grid-template-columns: repeat(2, 1fr) }
+  .augment-grid { grid-template-columns: repeat(2, 1fr) }
+  .stats-grid { grid-template-columns: repeat(2, 1fr) }
+}
+@media (max-width: 640px) {
+  .nav-links { display: none }
+  .hero h1 { font-size: clamp(2rem, 10vw, 3rem) }
+  .plate-types-grid { grid-template-columns: repeat(2, 1fr) }
+  .features-grid { grid-template-columns: 1fr }
+  .pipeline { grid-template-columns: 1fr }
+  .pipeline::before { display: none }
+  .augment-grid { grid-template-columns: repeat(2, 1fr) }
+  .hero-plate { width: 240px; height: 72px }
+  .plate-char { font-size: 1.8rem; width: 28px }
+  .footer-top { flex-direction: column; gap: 1rem }
+  .footer-links { flex-wrap: wrap; justify-content: center; gap: 1.25rem }
+}
+</style>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="nav">
+  <div class="container">
+    <a href="#" class="nav-logo">
+      <span class="dot"></span>车牌生成器
+    </a>
+    <ul class="nav-links">
+      <li><a href="#features">功能特性</a></li>
+      <li><a href="#plates">车牌类型</a></li>
+      <li><a href="#pipeline">处理流程</a></li>
+      <li><a href="#install">快速开始</a></li>
+    </ul>
+    <a href="https://github.com/yinguobing/License-Plate-Generator" class="nav-github" target="_blank" rel="noopener">GitHub ↗</a>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-grid">
+      <div class="hero-content">
+        <div class="hero-eyebrow">开源项目 · GA 36-2018 标准</div>
+        <h1>
+          批量生成<br>
+          <span class="highlight">中国车牌</span><br>
+          训练数据
+        </h1>
+        <p class="hero-description">
+          面向中文车牌识别的高保真合成数据引擎。可生成海量带有精确标注的仿真实车牌图像，
+          支持可配置的磨损、噪声与畸变效果，专为训练高鲁棒性 LPR 模型而设计。
+        </p>
+        <div class="hero-actions">
+          <a href="https://github.com/yinguobing/License-Plate-Generator" class="btn btn-primary" target="_blank" rel="noopener">
+            查看 GitHub
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M7 7h10v10"/></svg>
+          </a>
+          <a href="#install" class="btn btn-outline">快速开始</a>
+        </div>
+      </div>
+      <div class="hero-plate-wrapper">
+        <div class="plate-glow"></div>
+        <div class="floating-plate" style="background:var(--plate-yellow)"></div>
+        <div class="floating-plate" style="background:var(--plate-green)"></div>
+        <div class="floating-plate" style="background:var(--plate-white)"></div>
+        <div class="hero-plate" id="heroPlate">
+          <div class="plate-bolt"></div><div class="plate-bolt"></div>
+          <div class="plate-bolt"></div><div class="plate-bolt"></div>
+          <div class="plate-chars" id="plateChars"></div>
+        </div>
+      </div>
+    </div>
+    <div class="scroll-indicator">
+      <span>向下滚动</span>
+      <div class="scroll-line"></div>
+    </div>
+  </div>
+</section>
+
+<!-- Stats Bar -->
+<div class="stats-bar">
+  <div class="stats-grid">
+    <div class="stat-item">
+      <div class="stat-number">10+</div>
+      <div class="stat-label">内置车牌规则</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-number">GA 36</div>
+      <div class="stat-label">国家标准依据</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-number">∞</div>
+      <div class="stat-label">随机组合可能</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-number">4</div>
+      <div class="stat-label">数据增强方法</div>
+    </div>
+  </div>
+</div>
+
+<!-- Plate Types -->
+<section class="section" id="plates">
+  <div class="container">
+    <div class="section-tag">车牌目录</div>
+    <h2 class="section-title">10 种中国<br>车牌类型</h2>
+    <p class="section-subtitle">
+      严格依据 GA 36-2018 规范。覆盖所有省份、字符与颜色，忠实还原真实车牌样式。
+    </p>
+    <div class="plate-types-grid">
+      <div class="plate-type-card" style="--plate-color: var(--plate-blue-bright)">
+        <div class="plate-mini" style="background: var(--plate-blue)">
+          <div class="plate-mini-dots">
+            <div class="plate-mini-dot"></div><div class="plate-mini-dot"></div>
+            <div class="plate-mini-dot"></div><div class="plate-mini-dot"></div>
+            <div class="plate-mini-dot"></div><div class="plate-mini-dot"></div>
+            <div class="plate-mini-dot"></div>
+          </div>
+        </div>
+        <div class="plate-type-name">蓝牌</div>
+        <div class="plate-type-desc">普通小型汽车</div>
+      </div>
+      <div class="plate-type-card" style="--plate-color: var(--plate-yellow)">
+        <div class="plate-mini" style="background: var(--plate-yellow)">
+          <div class="plate-mini-dots">
+            <div class="plate-mini-dot" style="background:rgba(0,0,0,0.7)"></div>
+            <div class="plate-mini-dot" style="background:rgba(0,0,0,0.7)"></div>
+            <div class="plate-mini-dot" style="background:rgba(0,0,0,0.7)"></div>
+            <div class="plate-mini-dot" style="background:rgba(0,0,0,0.7)"></div>
+            <div class="plate-mini-dot" style="background:rgba(0,0,0,0.7)"></div>
+            <div class="plate-mini-dot" style="background:rgba(0,0,0,0.7)"></div>
+            <div class="plate-mini-dot" style="background:rgba(0,0,0,0.7)"></div>
+          </div>
+        </div>
+        <div class="plate-type-name">黄牌</div>
+        <div class="plate-type-desc">大型车辆</div>
+      </div>
+      <div class="plate-type-card" style="--plate-color: var(--plate-green)">
+        <div class="plate-mini" style="background: var(--plate-green)">
+          <div class="plate-mini-dots">
+            <div class="plate-mini-dot" style="background:rgba(0,0,0,0.7)"></div>
+            <div class="plate-mini-dot" style="background:rgba(0,0,0,0.7)"></div>
+            <div class="plate-mini-dot" style="background:rgba(0,0,0,0.7)"></div>
+            <div class="plate-mini-dot" style="background:rgba(0,0,0,0.7)"></div>
+            <div class="plate-mini-dot" style="background:rgba(0,0,0,0.7)"></div>
+            <div class="plate-mini-dot" style="background:rgba(0,0,0,0.7)"></div>
+            <div class="plate-mini-dot" style="background:rgba(0,0,0,0.7)"></div>
+          </div>
+        </div>
+        <div class="plate-type-name">绿牌</div>
+        <div class="plate-type-desc">新能源小型汽车</div>
+      </div>
+      <div class="plate-type-card" style="--plate-color: var(--plate-white)">
+        <div class="plate-mini" style="background: var(--plate-white)">
+          <div class="plate-mini-dots">
+            <div class="plate-mini-dot" style="background:rgba(0,0,0,0.7)"></div>
+            <div class="plate-mini-dot" style="background:rgba(0,0,0,0.7)"></div>
+            <div class="plate-mini-dot" style="background:rgba(0,0,0,0.7)"></div>
+            <div class="plate-mini-dot" style="background:rgba(0,0,0,0.7)"></div>
+            <div class="plate-mini-dot" style="background:rgba(0,0,0,0.7)"></div>
+            <div class="plate-mini-dot" style="background:rgba(0,0,0,0.7)"></div>
+            <div class="plate-mini-dot" style="background:rgba(0,0,0,0.7)"></div>
+          </div>
+        </div>
+        <div class="plate-type-name">白牌</div>
+        <div class="plate-type-desc">警用 / 军车</div>
+      </div>
+      <div class="plate-type-card" style="--plate-color: #8b0000">
+        <div class="plate-mini" style="background: #111">
+          <div class="plate-mini-dots">
+            <div class="plate-mini-dot"></div><div class="plate-mini-dot"></div>
+            <div class="plate-mini-dot"></div><div class="plate-mini-dot"></div>
+            <div class="plate-mini-dot"></div><div class="plate-mini-dot"></div>
+            <div class="plate-mini-dot"></div>
+          </div>
+        </div>
+        <div class="plate-type-name">使馆牌</div>
+        <div class="plate-type-desc">外交车辆 · 使</div>
+      </div>
+      <div class="plate-type-card" style="--plate-color: #8b0000">
+        <div class="plate-mini" style="background: #111">
+          <div class="plate-mini-dots">
+            <div class="plate-mini-dot"></div><div class="plate-mini-dot"></div>
+            <div class="plate-mini-dot"></div><div class="plate-mini-dot"></div>
+            <div class="plate-mini-dot"></div><div class="plate-mini-dot"></div>
+            <div class="plate-mini-dot"></div>
+          </div>
+        </div>
+        <div class="plate-type-name">领馆牌</div>
+        <div class="plate-type-desc">外交车辆 · 领</div>
+      </div>
+      <div class="plate-type-card" style="--plate-color: var(--plate-white)">
+        <div class="plate-mini" style="background: #111">
+          <div class="plate-mini-dots">
+            <div class="plate-mini-dot"></div><div class="plate-mini-dot"></div>
+            <div class="plate-mini-dot"></div><div class="plate-mini-dot"></div>
+            <div class="plate-mini-dot"></div><div class="plate-mini-dot"></div>
+            <div class="plate-mini-dot"></div>
+          </div>
+        </div>
+        <div class="plate-type-name">香港牌</div>
+        <div class="plate-type-desc">特别行政区 · 港</div>
+      </div>
+      <div class="plate-type-card" style="--plate-color: var(--plate-white)">
+        <div class="plate-mini" style="background: #111">
+          <div class="plate-mini-dots">
+            <div class="plate-mini-dot"></div><div class="plate-mini-dot"></div>
+            <div class="plate-mini-dot"></div><div class="plate-mini-dot"></div>
+            <div class="plate-mini-dot"></div><div class="plate-mini-dot"></div>
+            <div class="plate-mini-dot"></div>
+          </div>
+        </div>
+        <div class="plate-type-name">澳门牌</div>
+        <div class="plate-type-desc">特别行政区 · 澳</div>
+      </div>
+      <div class="plate-type-card" style="--plate-color: var(--plate-yellow)">
+        <div class="plate-mini" style="background: var(--plate-yellow)">
+          <div class="plate-mini-dots">
+            <div class="plate-mini-dot" style="background:rgba(0,0,0,0.7)"></div>
+            <div class="plate-mini-dot" style="background:rgba(0,0,0,0.7)"></div>
+            <div class="plate-mini-dot" style="background:rgba(0,0,0,0.7)"></div>
+            <div class="plate-mini-dot" style="background:rgba(0,0,0,0.7)"></div>
+            <div class="plate-mini-dot" style="background:rgba(0,0,0,0.7)"></div>
+            <div class="plate-mini-dot" style="background:rgba(0,0,0,0.7)"></div>
+          </div>
+        </div>
+        <div class="plate-type-name">驾校牌</div>
+        <div class="plate-type-desc">教练车 · 学</div>
+      </div>
+      <div class="plate-type-card" style="--plate-color: var(--plate-green)">
+        <div class="plate-mini" style="background: linear-gradient(135deg, var(--plate-green) 50%, #f5e6c8 50%)">
+          <div class="plate-mini-dots">
+            <div class="plate-mini-dot" style="background:rgba(0,0,0,0.7)"></div>
+            <div class="plate-mini-dot" style="background:rgba(0,0,0,0.7)"></div>
+            <div class="plate-mini-dot" style="background:rgba(0,0,0,0.7)"></div>
+            <div class="plate-mini-dot" style="background:rgba(0,0,0,0.7)"></div>
+            <div class="plate-mini-dot" style="background:rgba(0,0,0,0.7)"></div>
+            <div class="plate-mini-dot" style="background:rgba(0,0,0,0.7)"></div>
+            <div class="plate-mini-dot" style="background:rgba(0,0,0,0.7)"></div>
+          </div>
+        </div>
+        <div class="plate-type-name">绿牌公交</div>
+        <div class="plate-type-desc">新能源大型客车</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Features -->
+<section class="section" id="features" style="background:var(--bg-elevated)">
+  <div class="container">
+    <div class="section-tag">功能特性</div>
+    <h2 class="section-title">为什么选择<br>这个生成器？</h2>
+    <p class="section-subtitle">
+      不仅仅是随机生成车牌——这是一套完整的面向生产级 LPR 训练的数据增强流水线。
+    </p>
+    <div class="features-grid">
+      <div class="feature-card">
+        <h4>完整字符集</h4>
+        <p>覆盖 31 个省份、24 个英文字母、10 个数字，以及特殊字符（使、领、学、港、澳、警），涵盖 GA 36-2018 标准中所有令牌位置。</p>
+      </div>
+      <div class="feature-card">
+        <h4>自定义规则</h4>
+        <p>可通过自定义字符集、位置、颜色和背景来定义专属车牌格式，不限于中国车牌样式。</p>
+      </div>
+      <div class="feature-card">
+        <h4>批量生成</h4>
+        <p>数秒内生成数千张带标注的图像。每张车牌附带精确的字符标注，完美适配监督学习训练。</p>
+      </div>
+      <div class="feature-card">
+        <h4>数据增强</h4>
+        <p>内置打磨器支持曝光调整、运动模糊、高斯噪声和锐化处理，模拟真实世界的拍摄条件。</p>
+      </div>
+      <div class="feature-card">
+        <h4>像素级合成</h4>
+        <p>带 Alpha 遮罩的字符叠加，每个位置颜色可独立配置。每个字符精确对位，严丝合缝。</p>
+      </div>
+      <div class="feature-card">
+        <h4>纯 Python + OpenCV</h4>
+        <p>零机器学习框架依赖。仅需 Python 3 和 OpenCV 4.5+，随处运行——云端、边缘设备或本地均可。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Pipeline -->
+<section class="section" id="pipeline">
+  <div class="container">
+    <div class="section-tag">工作原理</div>
+    <h2 class="section-title">处理流程</h2>
+    <p class="section-subtitle">
+      从规则定义到训练就绪图像，四个环节一气呵成。
+    </p>
+    <div class="pipeline">
+      <div class="pipeline-step">
+        <div class="pipeline-step-num">01 / 规则</div>
+        <h4>定义车牌格式</h4>
+        <p>选择内置规则或自行定义每个字符位的字符集、位置与颜色。</p>
+      </div>
+      <div class="pipeline-step">
+        <div class="pipeline-step-num">02 / 生成</div>
+        <h4>随机组合拼合</h4>
+        <p>随机采样字符，以 Alpha 混合方式精确合成到车牌背景的像素坐标上。</p>
+      </div>
+      <div class="pipeline-step">
+        <div class="pipeline-step-num">03 / 打磨</div>
+        <h4>做旧与老化</h4>
+        <p>施加可配置的噪声、模糊、曝光偏移与锐化效果，模拟真实拍摄退化过程。</p>
+      </div>
+      <div class="pipeline-step">
+        <div class="pipeline-step-num">04 / 输出</div>
+        <h4>标注数据集</h4>
+        <p>每张图像导出时携带真实字符标注，可直接接入 LPR 训练流水线。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Augmentation Showcase -->
+<section class="section" style="padding-top:0">
+  <div class="container">
+    <div class="section-tag">增强引擎</div>
+    <h2 class="section-title">打磨器</h2>
+    <p class="section-subtitle">
+      四种增强变换让合成车牌呈现出真实拍摄效果。
+    </p>
+    <div class="augment-grid">
+      <div class="augment-card">
+        <div class="augment-label">曝光</div>
+        <h4>亮度增减</h4>
+        <p style="font-size:0.8rem;color:var(--text-muted);margin-top:0.25rem">Alpha + Beta 调整</p>
+      </div>
+      <div class="augment-card">
+        <div class="augment-label">锐化</div>
+        <h4>边缘增强</h4>
+        <p style="font-size:0.8rem;color:var(--text-muted);margin-top:0.25rem">3×3 拉普拉斯核</p>
+      </div>
+      <div class="augment-card">
+        <div class="augment-label">模糊</div>
+        <h4>运动模拟</h4>
+        <p style="font-size:0.8rem;color:var(--text-muted);margin-top:0.25rem">定向核模糊处理</p>
+      </div>
+      <div class="augment-card">
+        <div class="augment-label">噪声</div>
+        <h4>传感器颗粒</h4>
+        <p style="font-size:0.8rem;color:var(--text-muted);margin-top:0.25rem">高斯噪声注入</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Code Demo -->
+<section class="section" style="padding-top:0">
+  <div class="container">
+    <div class="section-tag">快速开始</div>
+    <h2 class="section-title" id="install">五行代码</h2>
+    <p class="section-subtitle">
+      几秒钟内生成你的第一张车牌图像。
+    </p>
+    <div class="code-section">
+      <div class="code-header">
+        <div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div>
+        <span class="code-filename">demo.py</span>
+      </div>
+      <div class="code-block">
+        <pre><span class="kw">from</span> core.license_plate <span class="kw">import</span> LPImageGenerator
+<span class="kw">from</span> core.grind <span class="kw">import</span> Grinder
+<span class="kw">from</span> patterns.china <span class="kw">import</span> BLUE
+
+<span class="cmt"># 创建蓝牌生成器</span>
+generator = LPImageGenerator(BLUE)
+grinder = Grinder()
+
+<span class="cmt"># 生成并增强</span>
+image, label = generator.random_generate()
+image = grinder.make_noise(image)
+<span class="kw">print</span>(<span class="str">f"Generated: {label}"</span>)  <span class="cmt"># → "京A·B1234"</span></pre>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:2rem">
+      <a href="https://github.com/yinguobing/License-Plate-Generator" class="btn btn-primary" target="_blank" rel="noopener">
+        克隆仓库
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M7 7h10v10"/></svg>
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section section">
+  <div class="container">
+    <h2>准备好构建<br>你的数据集了吗？</h2>
+    <p class="section-subtitle">
+      MIT 许可证开源项目，欢迎贡献代码。
+    </p>
+    <div class="cta-actions">
+      <a href="https://github.com/yinguobing/License-Plate-Generator" class="btn btn-primary" target="_blank" rel="noopener">收藏 Star</a>
+      <a href="https://github.com/yinguobing/License-Plate-Generator/fork" class="btn btn-outline" target="_blank" rel="noopener">复刻 Fork</a>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-top">
+      <div class="footer-brand">车牌生成器</div>
+      <div class="footer-links">
+        <a href="https://github.com/yinguobing/License-Plate-Generator" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://github.com/yinguobing/License-Plate-Generator/blob/main/LICENSE" target="_blank" rel="noopener">许可证</a>
+        <a href="https://yinguobing.com" target="_blank" rel="noopener">作者</a>
+        <a href="https://std.samr.gov.cn/hb/search/stdHBDetailed?id=8B1827F150C5BB19E05397BE0A0AB44A" target="_blank" rel="noopener">GA 36-2018</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      由 <a href="https://yinguobing.com" target="_blank" rel="noopener">尹国冰</a> 开发 · LPR 数据集增强参考实现
+    </div>
+  </div>
+</footer>
+
+<script>
+// ── Animated License Plate ────────────────────────────────────────
+const provinces = ['京','津','沪','渝','冀','豫','云','辽','黑','湘','皖','鲁','新','苏','浙','赣','鄂','桂','甘','晋','蒙','陕','吉','闽','贵','粤','青','藏','川','宁','琼'];
+const alphabets = ['A','B','C','D','E','F','G','H','J','K','L','M','N','P','Q','R','S','T','U','V','W','X','Y','Z'];
+const digits = ['0','1','2','3','4','5','6','7','8','9'];
+
+function randomFrom(arr) { return arr[Math.floor(Math.random() * arr.length)] }
+
+function generatePlate() {
+  const chars = [
+    randomFrom(provinces),
+    randomFrom(alphabets),
+    '·',
+    randomFrom(digits),
+    randomFrom(digits),
+    randomFrom(digits),
+    randomFrom(digits)
+  ];
+  return chars;
+}
+
+function renderPlate() {
+  const container = document.getElementById('plateChars');
+  const chars = generatePlate();
+  container.innerHTML = '';
+  chars.forEach((ch, i) => {
+    const span = document.createElement('span');
+    span.className = 'plate-char';
+    span.textContent = ch;
+    span.style.animationDelay = `${i * 0.12}s`;
+    container.appendChild(span);
+  });
+}
+
+// Initial render
+renderPlate();
+
+// Cycle plates every 5 seconds
+setInterval(() => {
+  const container = document.getElementById('plateChars');
+  // Fade out
+  const chars = container.querySelectorAll('.plate-char');
+  chars.forEach((c, i) => {
+    c.style.transition = 'opacity 0.2s ease-out, transform 0.2s ease-out';
+    c.style.transitionDelay = `${i * 0.03}s`;
+    c.style.opacity = '0';
+    c.style.transform = 'translateY(-8px)';
+  });
+
+  // Replace after fade
+  setTimeout(() => {
+    const newChars = generatePlate();
+    container.innerHTML = '';
+    newChars.forEach((ch, i) => {
+      const span = document.createElement('span');
+      span.className = 'plate-char';
+      span.textContent = ch;
+      span.style.animationDelay = `${i * 0.12}s`;
+      container.appendChild(span);
+    });
+  }, 400);
+}, 5000);
+
+// ── Scroll-triggered plate color shift ────────────────────────────
+const heroPlate = document.getElementById('heroPlate');
+const plateColors = [
+  '#003d8f', // blue
+  '#003d8f',
+  '#e8b830', // yellow
+  '#2d8a4e', // green
+  '#f0f0f0', // white
+];
+
+window.addEventListener('scroll', () => {
+  const scrollY = window.scrollY;
+  const maxScroll = window.innerHeight;
+  const progress = Math.min(scrollY / maxScroll, 1);
+
+  // Subtle rotation on the hero plate as you scroll
+  if (progress < 0.5) {
+    const rotate = progress * 3;
+    const scale = 1 - progress * 0.05;
+    heroPlate.style.transform = `rotate(${rotate}deg) scale(${scale})`;
+    heroPlate.style.opacity = 1 - progress * 1.2;
+  }
+});
+
+// ── Stats counter animation ───────────────────────────────────────
+const statNumbers = document.querySelectorAll('.stat-number');
+const observerOptions = { threshold: 0.5 };
+
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.style.animation = 'charAppear 0.5s ease-out forwards';
+      observer.unobserve(entry.target);
+    }
+  });
+}, observerOptions);
+
+statNumbers.forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
